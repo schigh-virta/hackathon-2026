@@ -3,885 +3,876 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hackathon Feature: SetPersonCustomer & Service Architecture</title>
+<title>Decision Engine: Disambiguating Person-Customer Logic</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* ============ THEME: Blueprint Technical ============ */
   :root {
-    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
-    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+    --font-body: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', monospace;
 
-    /* Blueprint light — slate blue tones */
-    --bg: #f8fafc;
+    --bg: #faf8f5;
     --surface: #ffffff;
-    --surface2: #f1f5f9;
-    --surface-elevated: #ffffff;
-    --border: rgba(30, 58, 95, 0.12);
-    --border-bright: rgba(30, 58, 95, 0.25);
-    --text: #1e3a5f;
-    --text-dim: #64748b;
+    --surface2: #f5f2ed;
+    --border: rgba(45, 35, 25, 0.1);
+    --border-bright: rgba(45, 35, 25, 0.2);
+    --text: #2d2319;
+    --text-dim: #7a6e5d;
 
-    --primary: #0369a1;
-    --primary-dim: rgba(3, 105, 161, 0.08);
-    --teal: #0891b2;
-    --teal-dim: rgba(8, 145, 178, 0.08);
-    --amber: #d97706;
-    --amber-dim: rgba(217, 119, 6, 0.08);
-    --emerald: #059669;
-    --emerald-dim: rgba(5, 150, 105, 0.08);
-    --rose: #be123c;
-    --rose-dim: rgba(190, 18, 60, 0.08);
-    --slate: #475569;
-    --slate-dim: rgba(71, 85, 105, 0.08);
+    --problem: #b91c1c;
+    --problem-dim: rgba(185, 28, 28, 0.08);
+    --solution: #047857;
+    --solution-dim: rgba(4, 120, 87, 0.08);
+    --accent: #1e3a5f;
+    --accent-dim: rgba(30, 58, 95, 0.08);
+    --gold: #b45309;
+    --gold-dim: rgba(180, 83, 9, 0.1);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124, 58, 237, 0.08);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #334155;
-      --surface-elevated: #1e293b;
-      --border: rgba(148, 163, 184, 0.12);
-      --border-bright: rgba(148, 163, 184, 0.25);
-      --text: #e2e8f0;
-      --text-dim: #94a3b8;
+      --bg: #1a1814;
+      --surface: #252219;
+      --surface2: #2e2a23;
+      --border: rgba(255, 248, 230, 0.08);
+      --border-bright: rgba(255, 248, 230, 0.15);
+      --text: #f5f0e6;
+      --text-dim: #a89f8f;
 
-      --primary: #38bdf8;
-      --primary-dim: rgba(56, 189, 248, 0.15);
-      --teal: #22d3ee;
-      --teal-dim: rgba(34, 211, 238, 0.12);
-      --amber: #fbbf24;
-      --amber-dim: rgba(251, 191, 36, 0.12);
-      --emerald: #34d399;
-      --emerald-dim: rgba(52, 211, 153, 0.12);
-      --rose: #fb7185;
-      --rose-dim: rgba(251, 113, 133, 0.12);
-      --slate: #94a3b8;
-      --slate-dim: rgba(148, 163, 184, 0.12);
+      --problem: #fca5a5;
+      --problem-dim: rgba(252, 165, 165, 0.12);
+      --solution: #6ee7b7;
+      --solution-dim: rgba(110, 231, 183, 0.12);
+      --accent: #93c5fd;
+      --accent-dim: rgba(147, 197, 253, 0.12);
+      --gold: #fbbf24;
+      --gold-dim: rgba(251, 191, 36, 0.15);
+      --purple: #c4b5fd;
+      --purple-dim: rgba(196, 181, 253, 0.12);
     }
   }
 
-  /* ============ RESET + BASE ============ */
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     background: var(--bg);
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
     color: var(--text);
     font-family: var(--font-body);
-    padding: 40px;
+    line-height: 1.6;
     min-height: 100vh;
   }
 
-  /* ============ ANIMATION ============ */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(24px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes fadeScale {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
   .animate {
-    animation: fadeUp 0.5s ease-out both;
-    animation-delay: calc(var(--i, 0) * 0.08s);
-  }
-
-  .animate-scale {
-    animation: fadeScale 0.4s ease-out both;
-    animation-delay: calc(var(--i, 0) * 0.08s);
+    animation: fadeUp 0.6s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.1s);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-delay: 0ms !important;
-      transition-duration: 0.01ms !important;
-    }
+    * { animation: none !important; }
   }
 
-  /* ============ LAYOUT ============ */
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  /* ============ HEADER ============ */
-  .header {
+  /* Hero */
+  .hero {
     text-align: center;
-    margin-bottom: 48px;
+    padding: 80px 40px 60px;
+    background: linear-gradient(180deg, var(--purple-dim) 0%, transparent 100%);
   }
 
-  .badge {
-    display: inline-block;
-    background: var(--amber-dim);
-    color: var(--amber);
+  .hero-label {
     font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    margin-bottom: 16px;
-  }
-
-  h1 {
-    font-size: 42px;
-    font-weight: 700;
-    letter-spacing: -1.5px;
-    margin-bottom: 12px;
-    text-wrap: balance;
-  }
-
-  .subtitle {
-    color: var(--text-dim);
-    font-size: 16px;
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.6;
-  }
-
-  /* ============ SECTION ============ */
-  .section {
-    margin-bottom: 48px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    color: var(--purple);
     margin-bottom: 20px;
   }
 
-  .section-num {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--primary);
-    background: var(--primary-dim);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 400;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+    line-height: 1.2;
   }
 
-  .section-title {
-    font-size: 20px;
-    font-weight: 600;
+  .hero h1 em {
+    font-style: italic;
+    color: var(--purple);
   }
 
-  /* ============ ARCHITECTURE DIAGRAM ============ */
-  .arch-diagram {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .arch-diagram::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--teal), var(--emerald));
-  }
-
-  .services-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 32px;
-  }
-
-  .service-card {
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    position: relative;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-
-  .service-card:hover {
-    border-color: var(--border-bright);
-    transform: translateY(-2px);
-  }
-
-  .service-card--new {
-    border-color: var(--emerald);
-    border-style: dashed;
-  }
-
-  .service-card--modified {
-    border-color: var(--amber);
-  }
-
-  .service-badge {
-    position: absolute;
-    top: -10px;
-    right: 16px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 4px 10px;
-    border-radius: 10px;
-  }
-
-  .service-badge--new {
-    background: var(--emerald);
-    color: white;
-  }
-
-  .service-badge--modified {
-    background: var(--amber);
-    color: white;
-  }
-
-  .service-name {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .service-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-  }
-
-  .service-desc {
-    font-size: 13px;
+  .hero-subtitle {
+    font-size: 18px;
     color: var(--text-dim);
-    line-height: 1.5;
-    margin-bottom: 12px;
-  }
-
-  .service-endpoints {
-    list-style: none;
-    font-size: 12px;
-    font-family: var(--font-mono);
-  }
-
-  .service-endpoints li {
-    padding: 4px 0;
-    padding-left: 16px;
-    position: relative;
-    color: var(--text-dim);
-  }
-
-  .service-endpoints li::before {
-    content: '>';
-    position: absolute;
-    left: 0;
-    color: var(--primary);
-    font-weight: 600;
-  }
-
-  .service-endpoints .new-endpoint {
-    color: var(--emerald);
-    font-weight: 500;
-  }
-
-  /* ============ CONNECTION ARROWS ============ */
-  .connections {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    padding: 20px 0;
-    position: relative;
-  }
-
-  .connection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .connection-arrow {
-    width: 40px;
-    height: 40px;
-    fill: none;
-    stroke: var(--primary);
-    stroke-width: 2;
-  }
-
-  .connection-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  /* ============ CENTRAL HUB ============ */
-  .central-hub {
-    background: var(--primary-dim);
-    border: 2px solid var(--primary);
-    border-radius: 12px;
-    padding: 24px 32px;
-    text-align: center;
-    max-width: 400px;
+    max-width: 650px;
     margin: 0 auto;
   }
 
-  .hub-title {
-    font-family: var(--font-mono);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 8px;
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px;
   }
 
-  .hub-desc {
-    font-size: 13px;
-    color: var(--text-dim);
+  section { padding: 80px 0; }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 48px;
   }
 
-  /* ============ CODE CHANGES ============ */
-  .changes-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-
-  .change-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    position: relative;
-  }
-
-  .change-card--full {
-    grid-column: 1 / -1;
-  }
-
-  .change-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .change-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-  }
-
-  .change-icon--grpc { background: var(--teal-dim); color: var(--teal); }
-  .change-icon--model { background: var(--emerald-dim); color: var(--emerald); }
-  .change-icon--validate { background: var(--amber-dim); color: var(--amber); }
-  .change-icon--error { background: var(--rose-dim); color: var(--rose); }
-  .change-icon--audit { background: var(--slate-dim); color: var(--slate); }
-
-  .change-title {
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .change-file {
+  .section-label {
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 2px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
   }
 
-  .code-block {
+  .section-title {
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+  }
+
+  /* Before/After Comparison */
+  .comparison-section {
     background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.7;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
+    border-top: 1px solid var(--border);
   }
 
-  .code-block .keyword { color: var(--primary); }
-  .code-block .func { color: var(--teal); }
-  .code-block .type { color: var(--amber); }
-  .code-block .string { color: var(--emerald); }
-  .code-block .comment { color: var(--text-dim); font-style: italic; }
-  .code-block .new { background: var(--emerald-dim); padding: 0 4px; border-radius: 3px; }
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 0;
+    align-items: stretch;
+  }
 
-  /* ============ DATA FLOW ============ */
-  .flow-diagram {
+  .comparison-panel {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 32px;
-  }
-
-  .flow-steps {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .flow-step {
-    flex: 1;
-    min-width: 140px;
-    max-width: 180px;
-    text-align: center;
-  }
-
-  .flow-step-num {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: white;
-    font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 12px;
-  }
-
-  .flow-step-title {
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-
-  .flow-step-desc {
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.5;
-  }
-
-  .flow-arrow-h {
-    flex-shrink: 0;
-    width: 40px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--primary), var(--teal));
-    margin-top: 18px;
     position: relative;
   }
 
-  .flow-arrow-h::after {
-    content: '';
+  .comparison-panel--before {
+    border-color: var(--problem);
+  }
+
+  .comparison-panel--before::before {
+    content: 'BEFORE';
     position: absolute;
-    right: 0;
-    top: -4px;
-    border: 5px solid transparent;
-    border-left-color: var(--teal);
-  }
-
-  /* ============ LEGEND ============ */
-  .legend {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-
-  .legend-swatch {
-    width: 16px;
-    height: 16px;
+    top: -12px;
+    left: 24px;
+    background: var(--problem);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 4px 12px;
     border-radius: 4px;
   }
 
-  .legend-swatch--new {
-    background: var(--emerald-dim);
-    border: 2px dashed var(--emerald);
+  .comparison-panel--after {
+    border-color: var(--solution);
   }
 
-  .legend-swatch--modified {
-    background: var(--amber-dim);
-    border: 2px solid var(--amber);
-  }
-
-  .legend-swatch--existing {
-    background: var(--surface2);
-    border: 2px solid var(--border-bright);
-  }
-
-  /* ============ CALLOUT ============ */
-  .callout {
-    background: var(--primary-dim);
-    border: 1px solid var(--primary);
-    border-left: 4px solid var(--primary);
-    border-radius: 0 12px 12px 0;
-    padding: 20px 24px;
-    margin-top: 32px;
-  }
-
-  .callout-title {
+  .comparison-panel--after::before {
+    content: 'AFTER';
+    position: absolute;
+    top: -12px;
+    left: 24px;
+    background: var(--solution);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 10px;
     font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 8px;
-    color: var(--primary);
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 4px;
   }
 
-  .callout-text {
+  .comparison-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .divider-arrow {
+    width: 48px;
+    height: 48px;
+    background: var(--purple);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 300;
+  }
+
+  .panel-title {
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Before: Scattered decisions */
+  .scattered-decisions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .decision-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--problem);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+  }
+
+  .decision-location {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--problem);
+    margin-bottom: 6px;
+  }
+
+  .decision-logic {
     font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .decision-logic code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--problem-dim);
+    color: var(--problem);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* After: Centralized engine */
+  .centralized-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .flow-input {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .input-pill {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .flow-arrow-down {
+    text-align: center;
+    color: var(--border-bright);
+    font-size: 20px;
+    padding: 4px 0;
+  }
+
+  .engine-box {
+    background: var(--purple-dim);
+    border: 2px solid var(--purple);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .engine-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+    margin-bottom: 8px;
+  }
+
+  .engine-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .flow-outputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .output-card {
+    background: var(--solution-dim);
+    border: 1px solid var(--solution);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .output-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--solution);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .output-value {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* Problem Details */
+  .problems-section {
+    background: var(--problem-dim);
+  }
+
+  .problem-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .problem-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--problem-dim);
+    color: var(--problem);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .problem-title {
+    font-size: 17px;
+    margin-bottom: 8px;
+  }
+
+  .problem-desc {
+    font-size: 14px;
     color: var(--text-dim);
     line-height: 1.6;
   }
 
-  .callout-text code {
-    font-family: var(--font-mono);
-    font-size: 11px;
+  /* Decision Engine Details */
+  .engine-section {
     background: var(--surface);
-    padding: 2px 6px;
-    border-radius: 4px;
   }
 
-  /* ============ RESPONSIVE ============ */
+  .engine-diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 40px;
+  }
+
+  .diagram-label {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+
+  .engine-architecture {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .arch-column {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .arch-column-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .evidence-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .evidence-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .evidence-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .arch-connector {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .connector-line {
+    width: 40px;
+    height: 2px;
+    background: var(--purple);
+    position: relative;
+  }
+
+  .connector-line::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: -4px;
+    border: 5px solid transparent;
+    border-left-color: var(--purple);
+  }
+
+  .connector-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .decision-engine-core {
+    flex: 1.5;
+    min-width: 240px;
+    background: var(--purple-dim);
+    border: 2px solid var(--purple);
+    border-radius: 14px;
+    padding: 24px;
+  }
+
+  .core-header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .core-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--purple);
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 10px;
+  }
+
+  .core-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+  }
+
+  .core-features {
+    list-style: none;
+    font-size: 12px;
+  }
+
+  .core-features li {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .core-features li:last-child {
+    border-bottom: none;
+  }
+
+  .feature-bullet {
+    width: 6px;
+    height: 6px;
+    background: var(--purple);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .decision-outputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .decision-output {
+    background: var(--solution-dim);
+    border: 1px solid var(--solution);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .decision-output-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--solution);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .decision-output-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* Benefits */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .benefit-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .benefit-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--solution-dim);
+    color: var(--solution);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 14px;
+  }
+
+  .benefit-title {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .benefit-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 48px 40px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .footer-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* Responsive */
   @media (max-width: 900px) {
-    .services-row { grid-template-columns: 1fr; }
-    .changes-grid { grid-template-columns: 1fr; }
-    .flow-steps { flex-direction: column; align-items: center; }
-    .flow-arrow-h {
-      width: 2px;
-      height: 30px;
-      background: linear-gradient(180deg, var(--primary), var(--teal));
-      margin: 8px 0;
-    }
-    .flow-arrow-h::after {
-      right: -4px;
-      top: auto;
-      bottom: 0;
-      border: 5px solid transparent;
-      border-top-color: var(--teal);
-      border-left-color: transparent;
-    }
+    .comparison-grid { grid-template-columns: 1fr; gap: 40px; }
+    .comparison-divider { transform: rotate(90deg); margin: -20px 0; }
+    .problem-cards { grid-template-columns: 1fr; }
+    .engine-architecture { flex-direction: column; }
+    .arch-connector { transform: rotate(90deg); width: auto; height: 60px; }
+    .benefits-grid { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 600px) {
-    body { padding: 20px; }
-    h1 { font-size: 28px; }
+    .hero { padding: 60px 24px 40px; }
+    section { padding: 60px 0; }
+    .container { padding: 0 24px; }
+    .flow-outputs { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<div class="container">
-
-  <!-- Header -->
-  <header class="header animate" style="--i:0">
-    <span class="badge">Hackathon 2026</span>
-    <h1>SetPersonCustomer Feature</h1>
-    <p class="subtitle">Direct manipulation of person-customer records with new service integrations for event evidence and workflow state management</p>
+  <!-- Hero -->
+  <header class="hero animate" style="--i:0">
+    <div class="hero-label">Hackathon 2026</div>
+    <h1>Disambiguating Decisioning<br>with a <em>Decision Engine</em></h1>
+    <p class="hero-subtitle">Centralizing scattered decision logic from person-customer and its ecosystem into a unified, observable engine</p>
   </header>
 
-  <!-- Section 1: Architecture Overview -->
-  <section class="section animate" style="--i:1">
-    <div class="section-header">
-      <span class="section-num">1</span>
-      <h2 class="section-title">Service Architecture</h2>
-    </div>
-
-    <div class="arch-diagram">
-      <div class="services-row">
-        <!-- Event Evidence Service -->
-        <div class="service-card service-card--new animate-scale" style="--i:2">
-          <span class="service-badge service-badge--new">New</span>
-          <div class="service-name">
-            <span class="service-icon" style="background:var(--emerald-dim);color:var(--emerald)">E</span>
-            event-evidence-service
-          </div>
-          <p class="service-desc">Manages event evidence with ontology entities for workflow decisions</p>
-          <ul class="service-endpoints">
-            <li>GET /evidence/:virta_id</li>
-            <li>POST /evidence</li>
-            <li>Work queue emission</li>
-          </ul>
-        </div>
-
-        <!-- Person Customer Service -->
-        <div class="service-card service-card--modified animate-scale" style="--i:3">
-          <span class="service-badge service-badge--modified">Modified</span>
-          <div class="service-name">
-            <span class="service-icon" style="background:var(--amber-dim);color:var(--amber)">P</span>
-            person-customer
-          </div>
-          <p class="service-desc">Core service for person-customer relationships, now with direct record manipulation</p>
-          <ul class="service-endpoints">
-            <li>SetCustomer</li>
-            <li>SetProduct</li>
-            <li class="new-endpoint">SetPersonCustomer (NEW)</li>
-            <li>GetExpectedProductSku</li>
-          </ul>
-        </div>
-
-        <!-- Person Workflow State Service -->
-        <div class="service-card service-card--new animate-scale" style="--i:4">
-          <span class="service-badge service-badge--new">New</span>
-          <div class="service-name">
-            <span class="service-icon" style="background:var(--emerald-dim);color:var(--emerald)">W</span>
-            person-workflow-state
-          </div>
-          <p class="service-desc">Manages person workflow states and transitions</p>
-          <ul class="service-endpoints">
-            <li>GET /state/:virta_id</li>
-            <li>POST /state</li>
-            <li>State response models</li>
-          </ul>
-        </div>
+  <!-- Before/After -->
+  <section class="comparison-section">
+    <div class="container">
+      <div class="section-header animate" style="--i:1">
+        <div class="section-label" style="color: var(--purple)">The Transformation</div>
+        <h2 class="section-title">From scattered to centralized</h2>
       </div>
 
-      <!-- Connections -->
-      <div class="connections">
-        <div class="connection">
-          <svg class="connection-arrow" viewBox="0 0 40 40">
-            <path d="M20 5 L20 35 M12 27 L20 35 L28 27" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span class="connection-label">Evidence</span>
+      <div class="comparison-grid">
+        <!-- Before -->
+        <div class="comparison-panel comparison-panel--before animate" style="--i:2">
+          <h3 class="panel-title">Decision logic everywhere</h3>
+          <div class="scattered-decisions">
+            <div class="decision-block">
+              <div class="decision-location">person-customer/SetCustomer</div>
+              <div class="decision-logic">if <code>eligibility.status</code> == active && <code>product.available</code></div>
+            </div>
+            <div class="decision-block">
+              <div class="decision-location">enrollment-workflow/evaluate</div>
+              <div class="decision-logic">check <code>fma.complete</code> && <code>labs.a1c</code> in range</div>
+            </div>
+            <div class="decision-block">
+              <div class="decision-location">sfdc-subscriber/onUpdate</div>
+              <div class="decision-logic">when <code>stage</code> changes, derive <code>next_step</code></div>
+            </div>
+            <div class="decision-block">
+              <div class="decision-location">person-lifecycle/transition</div>
+              <div class="decision-logic">validate <code>customer_status</code> allows transition</div>
+            </div>
+          </div>
         </div>
-        <div class="connection">
-          <svg class="connection-arrow" viewBox="0 0 40 40">
-            <path d="M5 20 L35 20 M27 12 L35 20 L27 28" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span class="connection-label">gRPC</span>
-        </div>
-        <div class="connection">
-          <svg class="connection-arrow" viewBox="0 0 40 40">
-            <path d="M20 5 L20 35 M12 27 L20 35 L28 27" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span class="connection-label">State</span>
-        </div>
-      </div>
 
-      <!-- Central Hub -->
-      <div class="central-hub animate-scale" style="--i:5">
-        <div class="hub-title">Pub/Sub Work Queue</div>
-        <div class="hub-desc">Event-driven communication layer for async processing and state synchronization</div>
-      </div>
+        <div class="comparison-divider animate" style="--i:3">
+          <div class="divider-arrow">-></div>
+        </div>
 
-      <!-- Legend -->
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-swatch legend-swatch--new"></div>
-          <span>New Service</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch legend-swatch--modified"></div>
-          <span>Modified Service</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-swatch legend-swatch--existing"></div>
-          <span>Existing Infrastructure</span>
+        <!-- After -->
+        <div class="comparison-panel comparison-panel--after animate" style="--i:4">
+          <h3 class="panel-title">One engine, all decisions</h3>
+          <div class="centralized-flow">
+            <div class="flow-input">
+              <span class="input-pill">Evidence</span>
+              <span class="input-pill">Person</span>
+              <span class="input-pill">Context</span>
+            </div>
+            <div class="flow-arrow-down">|</div>
+            <div class="engine-box">
+              <div class="engine-title">Decision Engine</div>
+              <div class="engine-desc">Evaluates all rules, returns decisions</div>
+            </div>
+            <div class="flow-arrow-down">|</div>
+            <div class="flow-outputs">
+              <div class="output-card">
+                <div class="output-label">Workflow State</div>
+                <div class="output-value">FMA_PENDING</div>
+              </div>
+              <div class="output-card">
+                <div class="output-label">Eligible Product</div>
+                <div class="output-value">T2D_REVERSAL</div>
+              </div>
+              <div class="output-card">
+                <div class="output-label">Next Action</div>
+                <div class="output-value">SCHEDULE_LABS</div>
+              </div>
+              <div class="output-card">
+                <div class="output-label">Blockers</div>
+                <div class="output-value">NONE</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Section 2: Code Changes -->
-  <section class="section animate" style="--i:6">
-    <div class="section-header">
-      <span class="section-num">2</span>
-      <h2 class="section-title">Implementation Changes</h2>
-    </div>
-
-    <div class="changes-grid">
-      <!-- gRPC Endpoint -->
-      <div class="change-card animate" style="--i:7">
-        <div class="change-header">
-          <div class="change-icon change-icon--grpc">G</div>
-          <div>
-            <div class="change-title">New gRPC Endpoint</div>
-            <div class="change-file">internal/grpc/grpc_person_customer.go</div>
-          </div>
-        </div>
-        <div class="code-block"><span class="keyword">func</span> (<span class="type">s</span> *PersonCustomerServiceServer) <span class="func new">SetPersonCustomer</span>(
-    ctx context.Context,
-    req *person_customerv1.SetPersonCustomerRequest,
-) (*person_customerv1.SetPersonCustomerResponse, error)
-
-<span class="comment">// Direct manipulation of person-customer records</span>
-<span class="comment">// Bypasses standard enrollment workflow</span></div>
+  <!-- Problems We're Solving -->
+  <section class="problems-section">
+    <div class="container">
+      <div class="section-header animate" style="--i:5">
+        <div class="section-label" style="color: var(--problem)">Why This Matters</div>
+        <h2 class="section-title">The cost of scattered decisions</h2>
       </div>
 
-      <!-- Service Implementation -->
-      <div class="change-card animate" style="--i:8">
-        <div class="change-header">
-          <div class="change-icon change-icon--model">S</div>
-          <div>
-            <div class="change-title">Service Implementation</div>
-            <div class="change-file">internal/service/person_customer_impl.go</div>
-          </div>
+      <div class="problem-cards">
+        <div class="problem-card animate" style="--i:6">
+          <div class="problem-icon">?</div>
+          <h3 class="problem-title">Ambiguous ownership</h3>
+          <p class="problem-desc">When eligibility and workflow logic conflict, which service is "right"? No clear authority leads to inconsistent outcomes.</p>
         </div>
-        <div class="code-block"><span class="comment">// ~100 lines of new logic:</span>
-<span class="keyword">func</span> (s *PersonCustomerService) <span class="func new">SetPersonCustomer</span>(...) {
-  <span class="comment">// 1. Validate request</span>
-  <span class="comment">// 2. Load existing record (if any)</span>
-  <span class="comment">// 3. Merge with requested values</span>
-  <span class="comment">// 4. Save via Repository.SetCustomer</span>
-  <span class="comment">// 5. Publish change event</span>
-}</div>
-      </div>
 
-      <!-- Proto Converters -->
-      <div class="change-card animate" style="--i:9">
-        <div class="change-header">
-          <div class="change-icon change-icon--model">M</div>
-          <div>
-            <div class="change-title">Proto Conversion Helpers</div>
-            <div class="change-file">internal/model/person_customer.go</div>
-          </div>
+        <div class="problem-card animate" style="--i:7">
+          <div class="problem-icon">~</div>
+          <h3 class="problem-title">Duplicated logic</h3>
+          <p class="problem-desc">The same business rule gets implemented differently in person-customer, workflow-state, and SFDC subscriber.</p>
         </div>
-        <div class="code-block"><span class="keyword">func</span> <span class="func new">UpdaterTypeFromProto</span>(p person_customerv1.UpdaterType) UpdaterType {
-  <span class="keyword">switch</span> p {
-  <span class="keyword">case</span> UPDATER_TYPE_OPERATOR: <span class="keyword">return</span> UpdaterTypeOperator
-  <span class="keyword">case</span> UPDATER_TYPE_EVENT_EVIDENCE_EVENTS_SUBSCRIBER: ...
-  <span class="comment">// 7 updater types supported</span>
-  }
-}
 
-<span class="keyword">func</span> <span class="func new">ReasonCodeFromProto</span>(rc person_customerv1.ReasonCode) personcustomer.ReasonCode</div>
-      </div>
-
-      <!-- Validation -->
-      <div class="change-card animate" style="--i:10">
-        <div class="change-header">
-          <div class="change-icon change-icon--validate">V</div>
-          <div>
-            <div class="change-title">Request Validation</div>
-            <div class="change-file">internal/validate/validate.go</div>
-          </div>
+        <div class="problem-card animate" style="--i:8">
+          <div class="problem-icon">!</div>
+          <h3 class="problem-title">Hidden dependencies</h3>
+          <p class="problem-desc">Changing one decision point has cascading effects. You don't know what breaks until production breaks.</p>
         </div>
-        <div class="code-block"><span class="keyword">func</span> <span class="func new">SetPersonCustomerRequest</span>(req *...Request) (*uuid.UUID, error) {
-  <span class="comment">// Validates:</span>
-  <span class="comment">// - PersonCustomer object exists</span>
-  <span class="comment">// - VirtaID is valid UUID</span>
-  <span class="comment">// - OperatorID is valid UUID</span>
-  <span class="comment">// - ReasonCode is not UNSPECIFIED</span>
-}</div>
-      </div>
 
-      <!-- Error & Audit (full width) -->
-      <div class="change-card change-card--full animate" style="--i:11">
-        <div class="change-header">
-          <div class="change-icon change-icon--error">E</div>
-          <div>
-            <div class="change-title">New Error Type & Audit Log</div>
-            <div class="change-file">internal/errs/errors.go + internal/service/type.go</div>
-          </div>
-        </div>
-        <div class="code-block" style="display:flex;gap:32px;flex-wrap:wrap;">
-<span><span class="comment">// New validation error:</span>
-<span class="type new">ErrInvalidPersonCustomer</span> = fmt.Errorf(
-  <span class="string">"%w: invalid person customer"</span>,
-  ErrInvalid,
-)</span><span><span class="comment">// New audit log type:</span>
-<span class="type new">AuditLogGRPCSetPersonCustomer</span> AuditLogType = <span class="string">"grpc_set_person_customer"</span></span>
+        <div class="problem-card animate" style="--i:9">
+          <div class="problem-icon">X</div>
+          <h3 class="problem-title">Untestable rules</h3>
+          <p class="problem-desc">Business rules are buried in service code. Testing a policy change requires spinning up the entire ecosystem.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Section 3: Data Flow -->
-  <section class="section animate" style="--i:12">
-    <div class="section-header">
-      <span class="section-num">3</span>
-      <h2 class="section-title">SetPersonCustomer Data Flow</h2>
-    </div>
+  <!-- Decision Engine Architecture -->
+  <section class="engine-section">
+    <div class="container">
+      <div class="section-header animate" style="--i:10">
+        <div class="section-label" style="color: var(--purple)">The Solution</div>
+        <h2 class="section-title">A unified decision engine</h2>
+      </div>
 
-    <div class="flow-diagram">
-      <div class="flow-steps">
-        <div class="flow-step animate-scale" style="--i:13">
-          <div class="flow-step-num">1</div>
-          <div class="flow-step-title">gRPC Request</div>
-          <div class="flow-step-desc">Client sends SetPersonCustomerRequest with VirtaID, OperatorID, ReasonCode</div>
-        </div>
+      <div class="engine-diagram animate" style="--i:11">
+        <div class="diagram-label">Architecture Overview</div>
+        <div class="engine-architecture">
+          <!-- Inputs -->
+          <div class="arch-column">
+            <div class="arch-column-title">Evidence Inputs</div>
+            <div class="evidence-stack">
+              <div class="evidence-item">
+                <span class="evidence-dot" style="background: #0891b2"></span>
+                Labs Results
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-dot" style="background: #7c3aed"></span>
+                FMA Status
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-dot" style="background: #059669"></span>
+                Eligibility
+              </div>
+              <div class="evidence-item">
+                <span class="evidence-dot" style="background: #d97706"></span>
+                Person-Customer
+              </div>
+            </div>
+          </div>
 
-        <div class="flow-arrow-h"></div>
+          <div class="arch-connector">
+            <div class="connector-label">query</div>
+            <div class="connector-line"></div>
+          </div>
 
-        <div class="flow-step animate-scale" style="--i:14">
-          <div class="flow-step-num">2</div>
-          <div class="flow-step-title">Validation</div>
-          <div class="flow-step-desc">SetPersonCustomerRequest validates UUIDs and reason code</div>
-        </div>
+          <!-- Engine Core -->
+          <div class="decision-engine-core">
+            <div class="core-header">
+              <div class="core-icon">D</div>
+              <div class="core-title">Decision Engine</div>
+            </div>
+            <ul class="core-features">
+              <li><span class="feature-bullet"></span> Rule evaluation against evidence</li>
+              <li><span class="feature-bullet"></span> Configurable stage definitions</li>
+              <li><span class="feature-bullet"></span> Conflict resolution (most recent wins)</li>
+              <li><span class="feature-bullet"></span> Full decision audit trail</li>
+              <li><span class="feature-bullet"></span> Testable in isolation</li>
+            </ul>
+          </div>
 
-        <div class="flow-arrow-h"></div>
+          <div class="arch-connector">
+            <div class="connector-label">decide</div>
+            <div class="connector-line"></div>
+          </div>
 
-        <div class="flow-step animate-scale" style="--i:15">
-          <div class="flow-step-num">3</div>
-          <div class="flow-step-title">Load & Merge</div>
-          <div class="flow-step-desc">Retrieve existing record, merge with request values (fallback to old)</div>
-        </div>
-
-        <div class="flow-arrow-h"></div>
-
-        <div class="flow-step animate-scale" style="--i:16">
-          <div class="flow-step-num">4</div>
-          <div class="flow-step-title">Persist</div>
-          <div class="flow-step-desc">Repository.SetCustomer saves to database with audit trail</div>
-        </div>
-
-        <div class="flow-arrow-h"></div>
-
-        <div class="flow-step animate-scale" style="--i:17">
-          <div class="flow-step-num">5</div>
-          <div class="flow-step-title">Publish Event</div>
-          <div class="flow-step-desc">Emits change event to Pub/Sub for downstream consumers</div>
+          <!-- Outputs -->
+          <div class="arch-column">
+            <div class="arch-column-title">Decisions</div>
+            <div class="decision-outputs">
+              <div class="decision-output">
+                <div class="decision-output-label">State</div>
+                <div class="decision-output-value">ENROLLED</div>
+              </div>
+              <div class="decision-output">
+                <div class="decision-output-label">Product</div>
+                <div class="decision-output-value">T2D_REV</div>
+              </div>
+              <div class="decision-output">
+                <div class="decision-output-label">Action</div>
+                <div class="decision-output-value">NONE</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="callout animate" style="--i:18">
-      <div class="callout-title">Dependency Update</div>
-      <div class="callout-text">
-        The hackathon branch uses an updated <code>virtagen</code> library version
-        (<code>v0.0.0-20260312011922</code>) which includes the new
-        <code>SetPersonCustomerRequest</code> and <code>SetPersonCustomerResponse</code>
-        proto definitions. The <code>go.mod</code> includes a <code>replace</code> directive
-        to point to this newer version.
+      <!-- Benefits -->
+      <div class="benefits-grid">
+        <div class="benefit-card animate" style="--i:12">
+          <div class="benefit-icon">1</div>
+          <h4 class="benefit-title">Single source of truth</h4>
+          <p class="benefit-desc">One place defines all decision rules. No more conflicting logic across services.</p>
+        </div>
+        <div class="benefit-card animate" style="--i:13">
+          <div class="benefit-icon">2</div>
+          <h4 class="benefit-title">Observable decisions</h4>
+          <p class="benefit-desc">Every decision is logged with the evidence that drove it. Debug any outcome.</p>
+        </div>
+        <div class="benefit-card animate" style="--i:14">
+          <div class="benefit-icon">3</div>
+          <h4 class="benefit-title">Testable rules</h4>
+          <p class="benefit-desc">Test decision logic in isolation. No need to spin up the entire ecosystem.</p>
+        </div>
       </div>
     </div>
   </section>
 
-</div>
+  <footer>
+    <div class="footer-label">Project Reconstruct &middot; Decision Engine &middot; Hackathon 2026</div>
+  </footer>
 
 </body>
 </html>
